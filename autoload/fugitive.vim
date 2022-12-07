@@ -6005,7 +6005,7 @@ function! s:PlusEscape(string) abort
   return substitute(a:string, '\\*[|" ]', '\=repeat("\\", len(submatch(0))).submatch(0)', 'g')
 endfunction
 
-function! s:OpenParse(string, wants_cmd, wants_multiple) abort
+function! fugitive#OpenParse_deprecated(string, wants_cmd, wants_multiple) abort
   let opts = []
   let cmds = []
   let args = s:ArgSplit(a:string)
@@ -6136,7 +6136,7 @@ function! fugitive#Open(cmd, bang, mods, arg, ...) abort
     call s:BlurStatus()
   endif
   try
-    let [file, pre] = s:OpenParse(a:arg, 1, 0)
+    let [file, pre] = v:lua.OpenParse(a:arg, 1, 0)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
@@ -6148,7 +6148,7 @@ function! fugitive#DropCommand(line1, count, range, bang, mods, arg, ...) abort
 
   let mods = s:Mods(a:mods)
   try
-    let [files, pre] = s:OpenParse(a:arg, 1, 1)
+    let [files, pre] = v:lua.OpenParse(a:arg, 1, 1)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
@@ -6182,7 +6182,7 @@ function! fugitive#ReadCommand(line1, count, range, bang, mods, arg, ...) abort
   exe s:VersionCheck()
   let [read, post] = s:ReadPrepare(a:line1, a:count, a:range, a:mods)
   try
-    let [file, pre] = s:OpenParse(a:arg, 0, 0)
+    let [file, pre] = v:lua.OpenParse(a:arg, 0, 0)
   catch /^fugitive:/
     return 'echoerr ' . string(v:exception)
   endtry
