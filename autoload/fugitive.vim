@@ -553,7 +553,7 @@ function! fugitive#GitVersion(...) abort
   return a:000[i] ==# get(components, i)
 endfunction
 
-function! s:Dir(...) abort
+function! fugitive#Dir(...) abort
   return a:0 ? FugitiveGitDir(a:1) : FugitiveGitDir()
 endfunction
 
@@ -665,7 +665,7 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
   let git = s:GitCmd()
   if a:0 == 1 && type(a:1) == type({}) && (has_key(a:1, 'fugitive_dir') || has_key(a:1, 'git_dir')) && has_key(a:1, 'flags') && has_key(a:1, 'args')
     let cmd = a:1.flags + a:1.args
-    let dir = s:Dir(a:1)
+    let dir = fugitive#Dir(a:1)
     if has_key(a:1, 'git')
       let git = a:1.git
     endif
@@ -691,7 +691,7 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
   while i < len(cmd)
     if type(cmd[i]) == type({})
       if has_key(cmd[i], 'fugitive_dir') || has_key(cmd[i], 'git_dir')
-        let dir = s:Dir(cmd[i])
+        let dir = fugitive#Dir(cmd[i])
       endif
       if has_key(cmd[i], 'git')
         let git = cmd[i].git
@@ -701,11 +701,11 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
       endif
       call remove(cmd, i)
     elseif cmd[i] =~# '^$\|[\/.]' && cmd[i] !~# '^-'
-      let dir = s:Dir(remove(cmd, i))
+      let dir = fugitive#Dir(remove(cmd, i))
     elseif cmd[i] =~# '^--git-dir='
-      let dir = s:Dir(remove(cmd, i)[10:-1])
+      let dir = fugitive#Dir(remove(cmd, i)[10:-1])
     elseif type(cmd[i]) ==# type(0)
-      let dir = s:Dir(remove(cmd, i))
+      let dir = fugitive#Dir(remove(cmd, i))
     elseif cmd[i] ==# '-c' && len(cmd) > i + 1
       let key = matchstr(cmd[i+1], '^[^=]*')
       if has_key(s:prepare_env, tolower(key))
@@ -726,7 +726,7 @@ function! fugitive#PrepareDirEnvGitFlagsArgs(...) abort
     endif
   endwhile
   if !exists('dir')
-    let dir = s:Dir()
+    let dir = fugitive#Dir()
   endif
   call extend(autoenv, env)
   call s:PrepareEnv(autoenv, dir)
@@ -1014,7 +1014,7 @@ endfunction
 let s:head_cache = {}
 
 function! fugitive#Head(...) abort
-  let dir = a:0 > 1 ? a:2 : s:Dir()
+  let dir = a:0 > 1 ? a:2 : fugitive#Dir()
   if empty(dir)
     return ''
   endif
@@ -1041,7 +1041,7 @@ function! fugitive#Head(...) abort
 endfunction
 
 function! fugitive#RevParse(rev, ...) abort
-  let hash = s:ChompDefault('', [a:0 ? a:1 : s:Dir(), 'rev-parse', '--verify', a:rev, '--'])
+  let hash = s:ChompDefault('', [a:0 ? a:1 : fugitive#Dir(), 'rev-parse', '--verify', a:rev, '--'])
   if hash =~# '^\x\{40,\}$'
     return hash
   endif
@@ -1103,7 +1103,7 @@ function! fugitive#Config(...) abort
   let name = ''
   let default = get(a:, 3, '')
   if a:0 && type(a:1) == type(function('tr'))
-    let dir = s:Dir()
+    let dir = fugitive#Dir()
     let callback = a:000
   elseif a:0 > 1 && type(a:2) == type(function('tr'))
     if type(a:1) == type({}) && has_key(a:1, 'GetAll')
@@ -1114,23 +1114,23 @@ function! fugitive#Config(...) abort
       endif
       return a:1
     else
-      let dir = s:Dir(a:1)
+      let dir = fugitive#Dir(a:1)
       let callback = a:000[1:-1]
     endif
   elseif a:0 >= 2 && type(a:2) == type({}) && has_key(a:2, 'GetAll')
     return get(fugitive#ConfigGetAll(a:1, a:2), 0, default)
   elseif a:0 >= 2
-    let dir = s:Dir(a:2)
+    let dir = fugitive#Dir(a:2)
     let name = a:1
   elseif a:0 == 1 && type(a:1) == type({}) && has_key(a:1, 'GetAll')
     return a:1
   elseif a:0 == 1 && type(a:1) == type('') && a:1 =~# '^[[:alnum:]-]\+\.'
-    let dir = s:Dir()
+    let dir = fugitive#Dir()
     let name = a:1
   elseif a:0 == 1
-    let dir = s:Dir(a:1)
+    let dir = fugitive#Dir(a:1)
   else
-    let dir = s:Dir()
+    let dir = fugitive#Dir()
   endif
   let name = substitute(name, '^[^.]\+\|[^.]\+$', '\L&', 'g')
   let git_dir = s:GitDir(dir)
@@ -1162,7 +1162,7 @@ function! fugitive#ConfigGetAll(name, ...) abort
     let config = fugitive#Config(a:name)
     let name = a:1
   else
-    let config = fugitive#Config(a:0 ? a:1 : s:Dir())
+    let config = fugitive#Config(a:0 ? a:1 : fugitive#Dir())
     let name = a:name
   endif
   let name = substitute(name, '^[^.]\+\|[^.]\+$', '\L&', 'g')
@@ -1175,7 +1175,7 @@ function! fugitive#ConfigGetRegexp(pattern, ...) abort
     let config = fugitive#Config(a:name)
     let pattern = a:0 ? a:1 : '.*'
   else
-    let config = fugitive#Config(a:0 ? a:1 : s:Dir())
+    let config = fugitive#Config(a:0 ? a:1 : fugitive#Dir())
     let pattern = a:pattern
   endif
   call fugitive#Wait(config)
@@ -1466,9 +1466,9 @@ function! s:RemoteParseArgs(args) abort
   " From the remaining 0-2 arguments, extract the remote and Git config
   let remote = ''
   if empty(args)
-    let dir_or_config = s:Dir()
+    let dir_or_config = fugitive#Dir()
   elseif len(args) == 1 && type(args[0]) ==# type('') && args[0] !~# '^/\|^\a:[\\/]'
-    let dir_or_config = s:Dir()
+    let dir_or_config = fugitive#Dir()
     let remote = args[0]
   elseif len(args) == 1
     let dir_or_config = args[0]
@@ -1663,7 +1663,7 @@ function! s:DirCommitFile(path) abort
   if empty(vals)
     return ['', '', '']
   endif
-  return [s:Dir(fugitive#UrlDecode(vals[1])), vals[2], empty(vals[2]) ? '/.git/index' : fugitive#UrlDecode(vals[3])]
+  return [fugitive#Dir(fugitive#UrlDecode(vals[1])), vals[2], empty(vals[2]) ? '/.git/index' : fugitive#UrlDecode(vals[3])]
 endfunction
 
 function! s:DirRev(url) abort
@@ -1687,7 +1687,7 @@ function! s:MergeHead(dir) abort
 endfunction
 
 function! s:Owner(path, ...) abort
-  let dir = a:0 ? s:Dir(a:1) : s:Dir()
+  let dir = a:0 ? fugitive#Dir(a:1) : fugitive#Dir()
   if empty(dir)
     return ''
   endif
@@ -1744,7 +1744,7 @@ function! fugitive#Path(url, ...) abort
   if empty(a:url)
     return ''
   endif
-  let repo = call('s:Dir', a:000[1:-1])
+  let repo = call('fugitive#Dir', a:000[1:-1])
   let dir_s = fugitive#Find('.git/', repo)
   let tree = fugitive#Find(':/', repo)
   if !a:0
@@ -1791,7 +1791,7 @@ function! fugitive#Path(url, ...) abort
 endfunction
 
 function! s:Relative(...) abort
-  return fugitive#Path(@%, a:0 ? a:1 : ':(top)', a:0 > 1 ? a:2 : s:Dir())
+  return fugitive#Path(@%, a:0 ? a:1 : ':(top)', a:0 > 1 ? a:2 : fugitive#Dir())
 endfunction
 
 function! fugitive#Find(object, ...) abort
@@ -1911,7 +1911,7 @@ function! fugitive#Find(object, ...) abort
 endfunction
 
 function! s:Generate(object, ...) abort
-  let dir = a:0 ? a:1 : s:Dir()
+  let dir = a:0 ? a:1 : fugitive#Dir()
   let f = fugitive#Find(a:object, dir)
   if !empty(f)
     return f
@@ -1932,7 +1932,7 @@ function! s:DotRelative(path, ...) abort
 endfunction
 
 function! fugitive#Object(...) abort
-  let dir = a:0 > 1 ? s:Dir(a:2) : s:Dir()
+  let dir = a:0 > 1 ? fugitive#Dir(a:2) : fugitive#Dir()
   let [fdir, rev] = s:DirRev(a:0 ? a:1 : @%)
   if !s:SameRepo(dir, fdir)
     let rev = ''
@@ -2410,7 +2410,7 @@ function! s:GlobComplete(lead, pattern, ...) abort
 endfunction
 
 function! fugitive#CompletePath(base, ...) abort
-  let dir = a:0 == 1 ? a:1 : a:0 >= 3 ? a:3 : s:Dir()
+  let dir = a:0 == 1 ? a:1 : a:0 >= 3 ? a:3 : fugitive#Dir()
   let stripped = matchstr(a:base, '^\%(:/:\=\|:(top)\|:(top,literal)\|:(literal,top)\)')
   let base = strpart(a:base, len(stripped))
   if len(stripped) || a:0 < 4
@@ -2462,7 +2462,7 @@ function! s:CompleteHeads(dir) abort
 endfunction
 
 function! fugitive#CompleteObject(base, ...) abort
-  let dir = a:0 == 1 ? a:1 : a:0 >= 3 ? a:3 : s:Dir()
+  let dir = a:0 == 1 ? a:1 : a:0 >= 3 ? a:3 : fugitive#Dir()
   let tree = s:Tree(dir)
   let cwd = getcwd()
   let subdir = ''
@@ -2517,7 +2517,7 @@ function! s:CompleteSub(subcommand, A, L, P, ...) abort
   elseif a:A =~# '^-' || a:A is# 0
     return s:FilterEscape(split(s:ChompDefault('', [a:subcommand, '--git-completion-helper']), ' '), a:A)
   elseif !a:0
-    return fugitive#CompleteObject(a:A, s:Dir())
+    return fugitive#CompleteObject(a:A, fugitive#Dir())
   elseif type(a:1) == type(function('tr'))
     return call(a:1, [a:A, a:L, a:P] + (a:0 > 1 ? a:2 : []))
   else
@@ -2526,11 +2526,11 @@ function! s:CompleteSub(subcommand, A, L, P, ...) abort
 endfunction
 
 function! s:CompleteRevision(A, L, P, ...) abort
-  return s:FilterEscape(s:CompleteHeads(a:0 ? a:1 : s:Dir()), a:A)
+  return s:FilterEscape(s:CompleteHeads(a:0 ? a:1 : fugitive#Dir()), a:A)
 endfunction
 
 function! s:CompleteRemote(A, L, P, ...) abort
-  let dir = a:0 ? a:1 : s:Dir()
+  let dir = a:0 ? a:1 : fugitive#Dir()
   let remote = matchstr(a:L, '\u\w*[! ] *.\{-\}\s\@<=\zs[^-[:space:]]\S*\ze ')
   if !empty(remote)
     let matches = s:LinesError([dir, 'ls-remote', remote])[0]
@@ -2659,7 +2659,7 @@ function! fugitive#BufReadStatus(...) abort
     doautocmd BufReadPre
     let config = fugitive#Config()
 
-    let cmd = [s:Dir()]
+    let cmd = [fugitive#Dir()]
     setlocal noreadonly modifiable nomodeline buftype=nowrite
     if amatch !~# '^fugitive:' && s:cpath($GIT_INDEX_FILE !=# '' ? resolve(s:GitIndexFileEnv()) : fugitive#Find('.git/index')) !=# s:cpath(amatch)
       let cmd += [{'env': {'GIT_INDEX_FILE': FugitiveGitPath(amatch)}}]
@@ -3681,7 +3681,7 @@ endfor
 unlet s:colortype
 function! fugitive#Command(line1, line2, range, bang, mods, arg, ...) abort
   exe s:VersionCheck()
-  let dir = call('s:Dir', a:000)
+  let dir = call('fugitive#Dir', a:000)
   if len(dir)
     exe s:DirCheck(dir)
   endif
@@ -4030,8 +4030,8 @@ function! s:CompletableSubcommands(dir) abort
 endfunction
 
 function! fugitive#Complete(lead, ...) abort
-  let dir = a:0 == 1 ? a:1 : a:0 >= 3 ? s:Dir(a:3) : s:Dir()
-  let root = a:0 >= 4 ? a:4 : s:Tree(s:Dir())
+  let dir = a:0 == 1 ? a:1 : a:0 >= 3 ? fugitive#Dir(a:3) : fugitive#Dir()
+  let root = a:0 >= 4 ? a:4 : s:Tree(fugitive#Dir())
   let pre = a:0 > 1 ? strpart(a:1, 0, a:2) : ''
   let subcmd = matchstr(pre, '\u\w*[! ] *\%(\%(++\S\+\|--\S\+-pathspecs\|-c\s\+\S\+\)\s\+\)*\zs[[:alnum:]][[:alnum:]-]*\ze ')
   if empty(subcmd) && a:lead =~# '^+'
@@ -4068,7 +4068,7 @@ endfunction
 function! fugitive#Cd(path, ...) abort
   let path = substitute(a:path, '^:/:\=\|^:(\%(top\|top,literal\|literal,top\|literal\))', '', '')
   if path !~# '^/\|^\a\+:\|^\.\.\=\%(/\|$\)'
-    let dir = s:Dir()
+    let dir = fugitive#Dir()
     exe s:DirCheck(dir)
     let path = (empty(s:Tree(dir)) ? dir : s:Tree(dir)) . '/' . path
   endif
@@ -4078,7 +4078,7 @@ endfunction
 " Section: :Gstatus
 
 function! s:StatusCommand(line1, line2, range, count, bang, mods, reg, arg, args, ...) abort
-  let dir = a:0 ? s:Dir(a:1) : s:Dir()
+  let dir = a:0 ? fugitive#Dir(a:1) : fugitive#Dir()
   exe s:DirCheck(dir)
   try
     let mods = s:Mods(a:mods, 'Edge')
@@ -5286,7 +5286,7 @@ function! s:RevertSubcommand(line1, line2, range, bang, mods, options) abort
 endfunction
 
 function! fugitive#CommitComplete(A, L, P, ...) abort
-  let dir = a:0 ? a:1 : s:Dir()
+  let dir = a:0 ? a:1 : fugitive#Dir()
   if a:A =~# '^--fixup=\|^--squash='
     let commits = s:LinesError([dir, 'log', '--pretty=format:%s', '@{upstream}..'])[0]
     let pre = matchstr(a:A, '^--\w*=''\=') . ':/^'
@@ -5347,7 +5347,7 @@ function! s:CompleteBisect(A, L, P, ...) abort
     let subcmds = ['start', 'bad', 'new', 'good', 'old', 'terms', 'skip', 'next', 'reset', 'replay', 'log', 'run']
     return s:FilterEscape(subcmds, a:A)
   endif
-  let dir = a:0 ? a:1 : s:Dir()
+  let dir = a:0 ? a:1 : fugitive#Dir()
   return fugitive#CompleteObject(a:A, dir)
 endfunction
 
@@ -5510,7 +5510,7 @@ function! s:MergetoolSubcommand(line1, line2, range, bang, mods, options) abort
 endfunction
 
 function! s:DifftoolSubcommand(line1, line2, range, bang, mods, options) abort
-  let dir = s:Dir(a:options)
+  let dir = fugitive#Dir(a:options)
   exe s:DirCheck(dir)
   let i = 0
   let argv = copy(a:options.subcommand_args)
@@ -5743,7 +5743,7 @@ function! s:GrepSubcommand(line1, line2, range, bang, mods, options) abort
     let lc = fugitive#GitVersion(2, 19) ? ['-n', '--column'] : ['-n']
   endif
   let cmd = ['grep', '--no-color', '--full-name'] + lc
-  let dir = s:Dir(a:options)
+  let dir = fugitive#Dir(a:options)
   let options = s:GrepOptions(lc + args, dir)
   if listnr > 0
     exe listnr 'wincmd w'
@@ -5905,7 +5905,7 @@ function! s:LogParse(state, dir, prefix, line) abort
 endfunction
 
 function! fugitive#LogCommand(line1, count, range, bang, mods, args, type) abort
-  let dir = s:Dir()
+  let dir = fugitive#Dir()
   exe s:DirCheck(dir)
   let listnr = a:type =~# '^l' ? 0 : -1
   let [args, after] = s:SplitExpandChain('log ' . a:args, s:Tree(dir))
@@ -5989,63 +5989,11 @@ function! s:UsableWin(nr) abort
         \ index(['nofile','help','quickfix', 'terminal'], getbufvar(winbufnr(a:nr), '&buftype')) < 0
 endfunction
 
-function! s:ArgSplit(string) abort
-  let string = a:string
-  let args = []
-  while string =~# '\S'
-    let arg = matchstr(string, '^\s*\%(\\.\|\S\)\+')
-    let string = strpart(string, len(arg))
-    let arg = substitute(arg, '^\s\+', '', '')
-    call add(args, substitute(arg, '\\\+[|" ]', '\=submatch(0)[len(submatch(0))/2 : -1]', 'g'))
-  endwhile
-  return args
-endfunction
-
 function! s:PlusEscape(string) abort
   return substitute(a:string, '\\*[|" ]', '\=repeat("\\", len(submatch(0))).submatch(0)', 'g')
 endfunction
 
-function! fugitive#OpenParse_deprecated(string, wants_cmd, wants_multiple) abort
-  let opts = []
-  let cmds = []
-  let args = s:ArgSplit(a:string)
-  while !empty(args)
-    if args[0] =~# '^++'
-      call add(opts, ' ' . s:PlusEscape(remove(args, 0)))
-    elseif a:wants_cmd && args[0] ==# '+'
-      call remove(args, 0)
-      call add(cmds, '$')
-    elseif a:wants_cmd && args[0] =~# '^+'
-      call add(cmds, remove(args, 0)[1:-1])
-    else
-      break
-    endif
-  endwhile
-  if !a:wants_multiple && empty(args)
-    let args = ['>:']
-  endif
-  let dir = s:Dir()
-  let wants_cmd = a:wants_cmd
-  let urls = []
-  for arg in args
-    let [url, lnum] = s:OpenExpand(dir, arg, wants_cmd)
-    if lnum
-      call insert(cmds, lnum)
-    endif
-    call add(urls, url)
-    let wants_cmd = 0
-  endfor
-
-  let pre = join(opts, '')
-  if len(cmds) > 1
-    let pre .= ' +' . s:PlusEscape(join(map(cmds, '"exe ".string(v:val)'), '|'))
-  elseif len(cmds)
-    let pre .= ' +' . s:PlusEscape(cmds[0])
-  endif
-  return [a:wants_multiple ? urls : urls[0], pre]
-endfunction
-
-function! s:OpenExpand(dir, file, wants_cmd) abort
+function! fugitive#OpenExpand(dir, file, wants_cmd) abort
   if a:file ==# '-'
     let result = fugitive#Result()
     if has_key(result, 'file')
@@ -6194,7 +6142,7 @@ endfunction
 
 function! fugitive#EditComplete(A, L, P) abort
   if a:A =~# '^>'
-    return map(s:FilterEscape(s:CompleteHeads(s:Dir()), a:A[1:-1]), "'>' . v:val")
+    return map(s:FilterEscape(s:CompleteHeads(fugitive#Dir()), a:A[1:-1]), "'>' . v:val")
   else
     return fugitive#CompleteObject(a:A, a:L, a:P)
   endif
@@ -6217,7 +6165,7 @@ function! fugitive#WriteCommand(line1, line2, range, bang, mods, arg, ...) abort
   endif
   let mytab = tabpagenr()
   let mybufnr = bufnr('')
-  let args = s:ArgSplit(a:arg)
+  let args = v:lua.ArgSplit(a:arg)
   let after = ''
   if get(args, 0) =~# '^+'
     let after = '|' . remove(args, 0)[1:-1]
@@ -6353,7 +6301,7 @@ endfunction
 " Section: :Git push, :Git fetch
 
 function! s:CompletePush(A, L, P, ...) abort
-  let dir = a:0 ? a:1 : s:Dir()
+  let dir = a:0 ? a:1 : fugitive#Dir()
   let remote = matchstr(a:L, '\u\w*[! ] *.\{-\}\s\@<=\zs[^-[:space:]]\S*\ze ')
   if empty(remote)
     let matches = s:LinesError([dir, 'remote'])[0]
@@ -6393,7 +6341,7 @@ augroup fugitive_diff
   autocmd!
   autocmd BufWinLeave * nested
         \ if s:can_diffoff(+expand('<abuf>')) && s:diff_window_count() == 2 |
-        \   call s:diffoff_all(s:Dir(+expand('<abuf>'))) |
+        \   call s:diffoff_all(fugitive#Dir(+expand('<abuf>'))) |
         \ endif
   autocmd BufWinEnter * nested
         \ if s:can_diffoff(+expand('<abuf>')) && s:diff_window_count() == 1 |
@@ -6464,7 +6412,7 @@ endfunction
 
 function! fugitive#Diffsplit(autodir, keepfocus, mods, arg, ...) abort
   exe s:VersionCheck()
-  let args = s:ArgSplit(a:arg)
+  let args = v:lua.ArgSplit(a:arg)
   let post = ''
   let autodir = a:autodir
   while get(args, 0, '') =~# '^++'
@@ -6608,7 +6556,7 @@ endfunction
 " Section: :GMove, :GRemove
 
 function! s:Move(force, rename, destination) abort
-  let dir = s:Dir()
+  let dir = fugitive#Dir()
   exe s:DirCheck(dir)
   if s:DirCommitFile(@%)[1] !~# '^0\=$' || empty(@%)
     return 'echoerr ' . string('fugitive: mv not supported for this buffer')
@@ -6681,7 +6629,7 @@ function! fugitive#RenameCommand(line1, line2, range, bang, mods, arg, ...) abor
 endfunction
 
 function! s:Remove(after, force) abort
-  let dir = s:Dir()
+  let dir = fugitive#Dir()
   exe s:DirCheck(dir)
   if len(@%) && s:DirCommitFile(@%)[1] ==# ''
     let cmd = ['rm']
@@ -6790,7 +6738,7 @@ function! fugitive#BlameComplete(A, L, P) abort
 endfunction
 
 function! s:BlameSubcommand(line1, count, range, bang, mods, options) abort
-  let dir = s:Dir(a:options)
+  let dir = fugitive#Dir(a:options)
   exe s:DirCheck(dir)
   let flags = copy(a:options.subcommand_args)
   let i = 0
@@ -7290,7 +7238,7 @@ endfunction
 
 function! fugitive#BrowseCommand(line1, count, range, bang, mods, arg, ...) abort
   exe s:VersionCheck()
-  let dir = s:Dir()
+  let dir = fugitive#Dir()
   try
     let arg = a:arg
     if arg =~# '^++\%([Gg]it\)\=[Rr]emote='
@@ -8061,7 +8009,7 @@ endfunction
 " Section: Statusline
 
 function! fugitive#Statusline(...) abort
-  let dir = s:Dir(bufnr(''))
+  let dir = fugitive#Dir(bufnr(''))
   if empty(dir)
     return ''
   endif
