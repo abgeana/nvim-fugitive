@@ -1,6 +1,6 @@
 local M = {}
 
-function M.trim_space(s)
+function M.space(s)
     if type(s) ~= 'string' then
         error(format('invalid argument #1 (string expected, got %s)', type(s)), 2)
     elseif s == '' then
@@ -18,7 +18,7 @@ function M.trim_space(s)
     return s
 end
 
-local function trim_prefix(s, prefix)
+local function prefix(s, prefix)
     if type(s) ~= 'string' then
         error(format('invalid argument #1 (string expected, got %s)', type(s)), 2)
     elseif type(prefix) ~= 'string' then
@@ -37,7 +37,7 @@ local function trim_prefix(s, prefix)
     return s
 end
 
-function M.trim_suffix(s, suffix)
+function M.suffix(s, suffix)
     if type(s) ~= 'string' then
         error(format('invalid argument #1 (string expected, got %s)', type(s)), 2)
     elseif type(suffix) ~= 'string' then
