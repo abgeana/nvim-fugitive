@@ -2069,12 +2069,6 @@ function! s:Expand(rev, ...) abort
         \ '\=tr(s:ExpandVar(submatch(1),submatch(2),submatch(3),"", a:0 ? a:1 : getcwd()), "\1", " ")', 'g')
 endfunction
 
-function! fugitive#Expand(object) abort
-  return substitute(a:object,
-        \ '\(\\[' . s:fnameescape . ']\|^\\[>+-]\|' . s:commit_expand . '\|^\~[~.]\)\|' . s:expand,
-        \ '\=tr(s:ExpandVar(submatch(1),submatch(2),submatch(3),submatch(5)), "\1", " ")', 'g')
-endfunction
-
 function! s:SplitExpandChain(string, ...) abort
   let list = []
   let string = a:string
